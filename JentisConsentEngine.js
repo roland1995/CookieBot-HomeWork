@@ -40,10 +40,36 @@ window.jentis.consent.engine = new function ()
 		this.readStorage();		
 		this.init_eventlistener();
 		this.init_consentStatus();
-		this.checkifBarShow();
+		var bBarShow = this.checkifBarShow();
 
+		this.startJentisTracking(bBarShow);
 	}
 	
+	
+	this.startJentisTracking = function(bBarShow)
+	{
+		var bTrack = false;
+		if(typeof this.sConsentId !== "undefined" && this.sConsentId !== false && bBarShow===false)
+		{
+			for(var sVendorId in this.aStorage)
+			{
+				if(this.aStorage[sVendorId] === true)
+				{
+					bTrack = true;
+					break;
+				}
+			}			
+		}
+		
+		if(bTrack === true)
+		{
+			this.setEvent("minimal-consent-given");			
+		}
+		else
+		{
+			this.setEvent("no-consent-given");						
+		}
+	}
 	
 	/**
 	* Returns the consent status of a passed vendor
@@ -503,13 +529,15 @@ window.jentis.consent.engine = new function ()
 		if (bTrack === true)
 		{
 			//Now we want to hand over to the JENTIS Tracker
-			window._jts = window._jts || [];
-			_jts.push({
-				"track"     	: "consent",
+			var oTrackConsentData = {
 				"consentid"		: this.sConsentId,
 				"lastupdate"    : this.iLastUpdate,
 				"vendors"		: this.aStorage
 			});
+			this.setEvent("send-consent-data",oTrackConsentData);
+			
+			//Now check a second time if we want to start tracking.
+			this.startJentisTracking(false);
 
 		}
 	
