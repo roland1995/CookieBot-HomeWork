@@ -533,7 +533,7 @@ window.jentis.consent.engine = new function ()
 				"consentid"		: this.sConsentId,
 				"lastupdate"    : this.iLastUpdate,
 				"vendors"		: this.aStorage
-			});
+			};
 			this.setEvent("send-consent-data",oTrackConsentData);
 			
 			//Now check a second time if we want to start tracking.
