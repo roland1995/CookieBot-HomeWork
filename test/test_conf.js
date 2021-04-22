@@ -3,6 +3,9 @@ window.jentis.consent = window.jentis.consent || {};
 window.jentis.consent.config = {
 	
 	timeoutBarShow : 3600000,
+	backward : {
+		vendorduplicate : "pixel"
+	},		
 	vendors : 
 	{
 		"ga" : {

@@ -249,9 +249,12 @@ window.jentis.consent.engine = new function ()
 			this.aStorage = aData.vendors;
 			
 			//Backwards compatible
-			if(typeof this.aStorage === "undefined" && typeof aData.pixel !== "undefined")
+			if(	typeof this.aStorage === "undefined" && 
+				typeof this.oLocalConfData.backward !== "undefined" && 
+				typeof this.oLocalConfData.backward.vendorduplicate !== "undefined"				
+			)
 			{
-				this.aStorage = aData.pixel;
+				this.aStorage = aData[this.oLocalConfData.backward.vendorduplicate];
 			}
 			
 			this.aInitStorage = this.copyObject(aData.vendors);
@@ -621,9 +624,16 @@ window.jentis.consent.engine = new function ()
 			lastupdate: this.iLastUpdate,
 			vendors: aStorage,
 			send: bSend
-
 		};			
 		
+		//Backwards compatible
+		if(	
+			typeof this.oLocalConfData.backward !== "undefined" && 
+			typeof this.oLocalConfData.backward.vendorduplicate !== "undefined"				
+		)
+		{
+			aData[this.oLocalConfData.backward.vendorduplicate] = aStorage;
+		}		
 
 		//Now write it to the local storage		
 		localStorage.setItem("jentis.consent.data", JSON.stringify(aData));
