@@ -2,7 +2,7 @@ window.jentis = window.jentis || {};
 window.jentis.consent = window.jentis.consent || {};
 window.jentis.consent.config = {
 	
-	timeoutBarShow : 3600,
+	timeoutBarShow : 3600000,
 	vendors : 
 	{
 		"ga" : {
@@ -43,8 +43,8 @@ window.jentis.consent.config = {
 				"name"  : "statistic"
 			},
 			"justification" : {
-				"id"    : "consent",
-				"name"  : "consent"
+				"id"    : "legal",
+				"name"  : "Legal Fullfillment"
 			},
 			"description" : "bla bla bla bla bla"
 			

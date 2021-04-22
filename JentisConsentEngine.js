@@ -10,7 +10,15 @@ window.jentis.consent = window.jentis.consent || {};
 
 window.jentis.consent.engine = new function ()
 {
-	
+	//*************************
+	//*************************
+	//INIT FUNCTION
+	//*************************
+	//*************************
+		
+	/**
+	* While Loading we want to init all the consent and vendor status.	
+	*/	
 	this.init = function ()
 	{
 
@@ -30,8 +38,11 @@ window.jentis.consent.engine = new function ()
 				
 		this.sConsentId 		= false;			//Current ConsentID
 		this.iLastUpdate 		= false;			//Date in Unixtimestamp when the last save happend.
+		this.bSend				= false;			//true if the consent is send, false if never before send. Important for migration.
 		this.aStorage 			= {};				//List of bools for each pixel from the loca storage
 		this.aInitStorage 		= {};				//List of bools for each pixel (Status since the last save action)
+
+		this.bStartTrack			= null;				//Current Status if allready started to track.
 
 		//Check if we are within a iframe
 		this.bIframe = window.self !== window.top;
@@ -41,36 +52,226 @@ window.jentis.consent.engine = new function ()
 		this.init_eventlistener();
 		this.init_consentStatus();
 		var bBarShow = this.checkifBarShow();
-
 		this.startJentisTracking(bBarShow);
 	}
 	
 	
+	//*************************
+	//*************************
+	//HELPER FUNCTION FOR INIT
+	//*************************
+	//*************************
+	
+	/**
+	* Checks if we want to start tracking. If the consentbar is currently showen, then we do not start tracking.
+	* If we have at least one positive consent, then we start tracking.
+	*
+	*@param bool bBarShow Pass if the consentbar is currently showen.
+	*/
 	this.startJentisTracking = function(bBarShow)
 	{
 		var bTrack = false;
 		if(typeof this.sConsentId !== "undefined" && this.sConsentId !== false && bBarShow===false)
-		{
-			for(var sVendorId in this.aStorage)
+		{			
+			for (var sVendorId in this.oLocalConfData.vendors)
 			{
-				if(this.aStorage[sVendorId] === true)
+				var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
+			
+				if(this.aStorage[sVendorId] === true && oVendorConfig.justification.id === "consent")					
 				{
 					bTrack = true;
 					break;
 				}
-			}			
+			}		
 		}
 		
-		if(bTrack === true)
+		if(bTrack === true && this.bstartTrack !== true)
 		{
 			this.setEvent("minimal-consent-given");			
 		}
-		else
+		else if(bTrack === false && this.bstartTrack !== false)
 		{
 			this.setEvent("no-consent-given");						
 		}
+		
+		this.bstartTrack = bTrack;
 	}
 	
+	
+	
+	/**
+	* Organize the inital status of each vendor.
+	*/
+	this.init_consentStatus = function ()
+	{
+		if (this.sConsentId === false)
+		{
+			//Noch kein Storage gesetzt, daher aus Config initial setzen.
+			var aStorage = {};
+		}
+		else
+		{
+			var aStorage = this.aStorage;				
+		}
+		
+		this.bNewVendorConsent = false;
+		this.bWriteStorage = false;
+		
+		//Iterate all vendors from the config.
+		for (var sVendorId in this.oLocalConfData.vendors)
+		{
+			var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
+			
+			if(typeof aStorage[sVendorId] === "undefined")
+			{
+				//We do not have a stored consent of this vendor				
+				if(oVendorConfig.justification.id === "consent")
+				{
+					//If the justification is consent, we have to wait for the consent.
+					aStorage[sVendorId] = false;							
+					
+					//Now we have to know that there is a need for a new consent.
+					this.bNewVendorConsent = true;
+				}
+				else
+				{
+					//if the justification is NOT consent, we can start to track.
+					aStorage[sVendorId] = true;														
+				}						
+				
+				this.bWriteStorage = true;
+
+			}
+
+		}
+		
+		//Initial we have to write the storage situation, because at init no change event should fired.
+		this.aInitStorage = this.copyObject(aStorage);						
+		
+		
+		//If there is a consent storage (consentid exists) and we never send the consent before, now we have to send it.
+		var bSendConsent = (this.bSend === false && this.sConsentId !== false);
+
+
+		if(this.bWriteStorage)
+		{
+			this.writeStorage(aStorage,bSendConsent,true,false);
+		}		
+		else if(bSendConsent)
+		{
+			//If there is a consent storage (consentid exists) and we never send the consent before, now we have to send it.
+			//If we have to send it even without a change, we must go to writeStorage.
+			this.writeStorage(aStorage,bSendConsent,false,false);
+		}		
+		
+		window.jentis.consent.engine.setEvent("init");
+		
+	}
+
+	/**
+	* Check if the consentbar should shown to the user or not.
+	*
+	*@return bool true if the consentbar should be showen, false if nothing should be showen to the user.
+	*/
+	this.checkifBarShow = function ()
+	{
+		if (Object.keys(this.aStorage).length === 0 || this.sConsentId === false)
+		{
+			//No consent is stored
+			this.setEvent("show-bar");
+			return true;
+		}
+		else
+		{
+			
+			if(this.bNewVendorConsent === true)
+			{
+				//At least one new tool is added to the vendor consent list, so ask for consent again.
+				this.setEvent("show-bar");
+				return true;				
+			}
+			
+			if (this.iLastUpdate === false || ( typeof this.oLocalConfData.timeoutBarShow !== "undefined"  && this.iLastUpdate + this.oLocalConfData.timeoutBarShow < Date.now() ) )
+			{
+				//Max Time of consent storage is over, so we have to ask again.
+				this.setEvent("show-bar");
+				return true;
+
+			}
+			else
+			{
+				//No timeout and no new consent based vendor, so do not show the consentbar.
+				return false;
+			}
+		}
+	}
+
+
+	/**
+	* Read the storage from the localStorage and write it to the variables.
+	*
+	*/
+	this.readStorage = function ()
+	{
+		//Get the data from the local storage.
+		var aData = JSON.parse(localStorage.getItem("jentis.consent.data"));
+
+		if (aData === null)
+		{
+			//If not consent is stored.			
+			this.sConsentId = false;
+			this.iLastUpdate = false;
+			this.bSend = false;
+			
+			//Now we want to set the initial consent to false is the justification is consent, if we have an otherwise
+			//justification then consent then the inital status is true.
+			this.aStorage = {};			
+			for (var sVendorId in this.oLocalConfData.vendors)
+			{
+				var oVendorData = this.oLocalConfData.vendors[sVendorId];
+				if(oVendorData.justification.id === "consent")
+				{
+					this.aStorage[sVendorId] = false;							
+				}
+				else
+				{
+					this.aStorage[sVendorId] = true;											
+				}
+			}
+			
+			//Set the initial storage to empty object to realize the different when we want to store the status.
+			this.aInitStorage = {};
+		}
+		else
+		{
+			this.sConsentId = aData.consentid;
+			this.iLastUpdate = aData.lastupdate;
+			this.aStorage = aData.vendors;
+			this.aInitStorage = this.copyObject(aData.vendors);
+			
+			//If there is a storage previously by migration not set by JENTIS Consent Engine, then the send variables
+			//is not existing. Then we want to send the consent again to the JENTIS Server.
+			if(typeof aData.send !== "undefined")
+			{
+				this.bSend = aData.send;
+			}
+			else
+			{
+				this.bSend = false;
+			}
+			
+		}
+
+	}
+
+
+
+	//*************************
+	//*************************
+	//PUBLIC GET FUNCTION
+	//*************************
+	//*************************
+
 	/**
 	* Returns the consent status of a passed vendor
 	*
@@ -128,147 +329,87 @@ window.jentis.consent.engine = new function ()
 	{
 		return this.iLastUpdate;
 	}
+
+
+
+
 	
-	
+
+
+	//*************************
+	//*************************
+	//PUBLIC SET FUNCTION
+	//*************************
+	//*************************
+
 	/**
-	* Organize the inital status of each vendor.
+	* Set new status of vendors.
+	*
+	*@param array aVendorConsents The new status auf the vendors. The vendorId is the key and the value is bool true or false.
 	*/
-	this.init_consentStatus = function ()
+	this.setNewVendorConsents = function (aVendorConsents)
 	{
-		if (this.sConsentId === false)
+		//We want to override those vendors which are defined by the parameter.
+		for(var sVendorId in aVendorConsents)
 		{
-			//Noch kein Storage gesetzt, daher aus Config initial setzen.
-			var aStorage = {};
-		}
-		else
-		{
-			var aStorage = this.aStorage;				
+			this.aStorage[sVendorId] = aVendorConsents[sVendorId];
 		}
 		
-		this.bNewVendorConsent = false;
-		this.bWriteStorage = false;
-		
-		//Iterate all vendors from the config.
-		for (var sVendorId in this.oLocalConfData.vendors)
-		{
-			var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
-			
-			if(typeof aStorage[sVendorId] === "undefined")
-			{
-				//We do not have a stored consent of this vendor				
-				if(oVendorConfig.justification.id === "consent")
-				{
-					//If the justification is consent, we have to wait for the consent.
-					aStorage[sVendorId] = false;							
-					
-					//Now we have to know that there is a need for a new consent.
-					this.bNewVendorConsent = true;
-				}
-				else
-				{
-					//if the justification is NOT consent, we can start to track.
-					aStorage[sVendorId] = true;														
-				}						
-				
-				this.bWriteStorage = true;
-
-			}
-
-		}
-
-		if(this.bWriteStorage === true)
-		{		
-			//Initial we have to write the storage situation
-			this.aInitStorage = this.copyObject(aStorage);
-							
-			//Now we want to store the consent, but not send to the raw data
-			this.writeStorage(false, aStorage);
-		}
-
-		this.setEvent("init");
+		//Now set the new storage to the localstorage
+		return this.writeStorage(this.aStorage,true);		
 	}
 
 	/**
-	* Check if the consentbar should shown to the user or not.
-	*
-	*@return bool true if the consentbar should be showen, false if nothing should be showen to the user.
+	* Denies all consents of all vendors.
 	*/
-	this.checkifBarShow = function ()
+	this.DenyAll = function ()
 	{
-		if (Object.keys(this.aStorage).length === 0 || this.sConsentId === false)
-		{
-			//No consent is stored
-			this.setEvent("show-bar");
-			return true;
-		}
-		else
-		{
-			
-			if(this.bNewVendorConsent === true)
-			{
-				//At least one new tool is added to the vendor consent list, so ask for consent again.
-				this.setEvent("show-bar");
-				return true;				
-			}
-			
-			if (this.iLastUpdate === false || ( typeof this.oLocalConfData.timeoutBarShow !== "undefined"  && this.iLastUpdate + this.oLocalConfData.timeoutBarShow < Date.now() ) )
-			{
-				//Max Time of consent storage is over, so we have to ask again.
-				this.setEvent("show-bar");
-				return true;
 
+		//Set all vendors to false if justification is consent, otherwise it must be set to true
+		var aStorage = {};
+		for (var sVendorId in this.oLocalConfData.vendors)
+		{
+			var oVendorData = this.oLocalConfData.vendors[sVendorId];
+			
+			if(oVendorData.justification.id === "consent")
+			{
+				aStorage[sVendorId] = false;							
 			}
 			else
 			{
-				//No timeout and no new consent based vendor, so do not show the consentbar.
-				return false;
+				aStorage[sVendorId] = true;											
 			}
+
 		}
+
+		//Now set the new storage to the localstorage
+		return this.writeStorage(aStorage,true);		
 	}
 
 	/**
-	* Read the storage from the localStorage and write it to the variables.
-	*
+	* All vendors get a positiv consent.
 	*/
-	this.readStorage = function ()
+	this.AcceptAll = function ()
 	{
-		//Get the data from the local storage.
-		var aData = JSON.parse(localStorage.getItem("jentis.consent.data"));
-
-		if (aData === null)
+		//Set all vendors to true
+		var aStorage = {};
+		for (var sVendorId in this.oLocalConfData.vendors)
 		{
-			//If not consent is stored.			
-			this.sConsentId = false;
-			this.iLastUpdate = false;
-			
-			//Now we want to set the initial consent to false is the justification is consent, if we have an otherwise
-			//justification then consent then the inital status is true.
-			this.aStorage = {};			
-			for (var sVendorId in this.oLocalConfData.vendors)
-			{
-				var oVendorData = this.oLocalConfData.vendors[sVendorId];
-				if(oVendorData.justification.id === "consent")
-				{
-					this.aStorage[sVendorId] = false;							
-				}
-				else
-				{
-					this.aStorage[sVendorId] = true;											
-				}
-			}
-			
-			//Set the initial storage to empty object to realize the different when we want to store the status.
-			this.aInitStorage = {};
-		}
-		else
-		{
-			this.sConsentId = aData.consentid;
-			this.iLastUpdate = aData.lastupdate;
-			this.aStorage = aData.vendors;
-			this.aInitStorage = this.copyObject(aData.vendors);
+			aStorage[sVendorId] = true;			
 		}
 
+		//Now set the new storage to the localstorage
+		return this.writeStorage(aStorage,true);		
 	}
+
+
+
+
+	//*************************
+	//*************************
+	//INTERNAL EVENT  FUNCTION
+	//*************************
+	//*************************
 
 
 	/**
@@ -294,7 +435,7 @@ window.jentis.consent.engine = new function ()
 	}
 
 	/**
-	* BACKWARDS COMPATIBLE: Starts listen to different events
+	*DEPRECATED: Starts listen to different events
 	*
 	*@deprecated No longer events are used, but still supported in order to be backwars compatible. 
 	*/
@@ -340,72 +481,7 @@ window.jentis.consent.engine = new function ()
 
 
 	}
-	
 
-	//######################################
-	//ALLGEMEINE FUNKTIONEN
-	//######################################
-
-	/**
-	* Set new status of vendors.
-	*
-	*@param array aVendorConsents The new status auf the vendors. The vendorId is the key and the value is bool true or false.
-	*/
-	this.setNewVendorConsents = function (aVendorConsents)
-	{
-		//We want to override those vendors which are defined by the parameter.
-		for(var sVendorId in aVendorConsents)
-		{
-			this.aStorage[sVendorId] = aVendorConsents[sVendorId];
-		}
-		
-		//Now set the new storage to the localstorage
-		return this.writeStorage(true, this.aStorage);
-	}
-
-	/**
-	* Denies all consents of all vendors.
-	*/
-	this.DenyAll = function ()
-	{
-
-		//Set all vendors to false if justification is consent, otherwise it must be set to true
-		var aStorage = {};
-		for (var sVendorId in this.oLocalConfData.vendors)
-		{
-			var oVendorData = this.oLocalConfData.vendors[sVendorId];
-			
-			if(oVendorData.justification.id === "consent")
-			{
-				aStorage[sVendorId] = false;							
-			}
-			else
-			{
-				aStorage[sVendorId] = true;											
-			}
-
-		}
-
-		//Now set the new storage to the localstorage
-		return this.writeStorage(true, aStorage);
-	}
-
-	/**
-	* All vendors get a positiv consent.
-	*/
-	this.AcceptAll = function ()
-	{
-		//Set all vendors to true
-		var aStorage = {};
-		for (var sVendorId in this.oLocalConfData.vendors)
-		{
-			aStorage[sVendorId] = true;			
-		}
-
-		//Now set the new storage to the localstorage
-		return this.writeStorage(true, aStorage);
-
-	}
 
 	/**
 	* Set a event, store is to the event cache and triggers a global event.
@@ -436,6 +512,11 @@ window.jentis.consent.engine = new function ()
 		document.dispatchEvent(new CustomEvent(eventname, {"detail": oValue}));
 	}
 
+	//*************************
+	//*************************
+	//INTERNAL BASIC FUNCTIONS
+	//*************************
+	//*************************
 
 	/** 
 	* Check ob sich am Storage etwas geändert hat
@@ -496,57 +577,75 @@ window.jentis.consent.engine = new function ()
 	/**
 	* Writes the current vendor consent data to the local storage and optional send it to the JENTIS Tracker
 	*
-	*@param bool bTrack If true we will send the current consent data to the JENTIS Tracker
 	*@param array aStorage The current vendor consent data to store.
+	*@param bool bSend If true we will send the current consent data to the JENTIS Tracker
+	*@param bool bRenewTimestamp If true we will create a new current timestamp and add it to the storage data
+	*@param bool bstartTrack If true we will check if we must start tracking.	
 	*/
-	this.writeStorage = function (bTrack, aStorage)
+	this.writeStorage = function (aStorage,bSend,bRenewTimestamp,bStartTracking)
 	{		
 		//We just want to set a consentId if we are sending it to the server.
-		if(this.sConsentId === false && bTrack === true)
+		if(this.sConsentId === false && bSend === true)
 		{
 			this.sConsentId = this.uuidv4();
+		}			
+		
+		//If bSend not passed, then allways send it.
+		if(typeof bSend === "undefined")
+		{
+			bSend = true;
+		}
+
+		//If bStartTracking not passed, then allways start Tracking
+		if(typeof bStartTracking === "undefined")
+		{
+			bStartTracking = true;
+		}
+
+		//We are storing the update time no matter if we are sending or not.
+		if(typeof bRenewTimestamp === "undefined" || bRenewTimestamp === true)
+		{
+			this.iLastUpdate = Date.now();
 		}
 		
-		//We are storing the update time no matter if we are sending or not.
-		this.iLastUpdate = Date.now();
-
 		//Create the data to store
 		var aData = {
 			consentid: this.sConsentId,
 			lastupdate: this.iLastUpdate,
-			vendors: aStorage
-		};			
-		var sJson = JSON.stringify(aData);
+			vendors: aStorage,
+			send: bSend
 
-		//Now write it to the local storage
-		localStorage.setItem("jentis.consent.data", sJson);
+		};			
+		
+
+		//Now write it to the local storage		
+		localStorage.setItem("jentis.consent.data", JSON.stringify(aData));
+		
+		//Now we want to send it if wanted
+		if(bSend === true)
+		{
+			this.setEvent("send-consent-data",aData);	
+			//We can only set it to true. If send not wanted, may it is allready send to bSend is correctly mayba true.
+			this.bSend = true;
+		}
+		
 		
 		//We want to have the new storage data even in the object storage variables
-		this.aStorage = aStorage;
-
+		this.aStorage = aStorage;			
 		
-		//If bTrack is true we want to send the vendor consent data to the JENTIS Tracker.
-		if (bTrack === true)
-		{
-			//Now we want to hand over to the JENTIS Tracker
-			var oTrackConsentData = {
-				"consentid"		: this.sConsentId,
-				"lastupdate"    : this.iLastUpdate,
-				"vendors"		: this.aStorage
-			};
-			this.setEvent("send-consent-data",oTrackConsentData);
-			
-			//Now check a second time if we want to start tracking.
-			this.startJentisTracking(false);
-
-		}
-	
-	
+		//Check if something had changed so we can trigger the events.
 		this.checkStorageChange(aStorage);
-	
+		
+		//Now we want to check if we want to start to track.
+		if(bStartTracking === true)
+		{
+			this.startJentisTracking(false);
+		}
+		
 		//Return the consentID
 		return this.sConsentId;
-	}
+	}	
+	
 	
 	/**
 	* Return a GUID in Version 4
@@ -563,6 +662,13 @@ window.jentis.consent.engine = new function ()
 		});
 	}
 	
+	/**
+	* Copy a object not by reference
+	*
+	*@param object oObj The object which must be copied.
+	*@return string The new copy of the object.
+	*
+	*/	
 	this.copyObject = function(oObj)
 	{
 		var oNewObj = {};
@@ -573,7 +679,11 @@ window.jentis.consent.engine = new function ()
 		return oNewObj;
 	}
 	
-	this.init();
+	
 
-}
+};
+
+//We have to set the init event external because the object jentis.consent.engine must be created at this time so
+//others can access the object within the event call.
+window.jentis.consent.engine.init();
 
