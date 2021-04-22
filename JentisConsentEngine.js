@@ -247,6 +247,13 @@ window.jentis.consent.engine = new function ()
 			this.sConsentId = aData.consentid;
 			this.iLastUpdate = aData.lastupdate;
 			this.aStorage = aData.vendors;
+			
+			//Backwards compatible
+			if(typeof this.aStorage === "undefined" && typeof aData.pixel !== "undefined")
+			{
+				this.aStorage = aData.pixel;
+			}
+			
 			this.aInitStorage = this.copyObject(aData.vendors);
 			
 			//If there is a storage previously by migration not set by JENTIS Consent Engine, then the send variables
