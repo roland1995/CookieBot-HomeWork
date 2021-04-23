@@ -191,7 +191,7 @@ window.jentis.consent.engine = new function ()
 				return true;				
 			}
 			
-			if (this.iLastUpdate === false || ( typeof this.oLocalConfData.timeoutBarShow !== "undefined"  && this.iLastUpdate + this.oLocalConfData.timeoutBarShow < Date.now() ) )
+			if (this.iLastUpdate === false || ( typeof this.oLocalConfData.timeoutBarShow !== "undefined" && this.oLocalConfData.timeoutBarShow !== false && this.iLastUpdate + this.oLocalConfData.timeoutBarShow < Date.now() ) )
 			{
 				//Max Time of consent storage is over, so we have to ask again.
 				this.setEvent("show-bar");
