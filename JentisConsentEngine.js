@@ -51,6 +51,7 @@ window.jentis.consent.engine = new function ()
 		this.readStorage();		
 		this.init_eventlistener();
 		this.init_consentStatus();
+		this.addCssUrl();
 		var bBarShow = this.checkifBarShow();
 		this.startJentisTracking(bBarShow);
 	}
@@ -274,13 +275,47 @@ window.jentis.consent.engine = new function ()
 
 	}
 
-
+	/**
+	* If a template is configured now add the CSS Link to the HEAD Dom.
+	*
+	*/
+	this.addCssUrl = function()
+	{
+		if(typeof this.oLocalConfData.template !== "undefined" && typeof this.oLocalConfData.template.cssUrl !== "undefined")
+		{
+			//Externe CSS URL laden.
+			var oHead = document.getElementsByTagName("head")[0];
+			var oStyle = document.createElement("link");
+			oStyle.setAttribute("rel","stylesheet");
+			oStyle.setAttribute("href",this.oLocalConfData.template.cssUrl);
+			oHead.appendChild(oStyle);			
+		}			
+	}
 
 	//*************************
 	//*************************
 	//PUBLIC GET FUNCTION
 	//*************************
 	//*************************
+
+
+	/**
+	* Returns the configuration for the used consent bar template
+	*
+	*@return object The config Object.
+	*/
+	this.getTemplateConfig= function()
+	{
+		if(typeof this.oLocalConfData.template !== "undefined" && typeof this.oLocalConfData.template.config !== "undefined")
+		{
+			return this.oLocalConfData.template.config;
+		}
+		else
+		{
+			return false;			
+		}
+	}
+
 
 	/**
 	* Returns the consent status of a passed vendor

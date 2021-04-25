@@ -3,9 +3,25 @@ window.jentis.consent = window.jentis.consent || {};
 window.jentis.consent.config = {
 	
 	timeoutBarShow : 3600000,
+	cssUrl			: "test.css",
 	backward : {
 		vendorduplicate : "pixel"
-	},		
+	},	
+	template : {
+		cssUrl : "../JentisAppDsgvo.css",
+		config : {
+			consentText 	: "<h4>Dataprotection Settings</h4>Wir verwenden Cookies und &auml;hnliche Technologien f&uuml;r folgende Zwecke: {{purposes}}. Mit Klick auf \"Zustimmen\" willigen Sie der Verwendung dieser Cookies ein. Mit \"Ablehnen\" lehnen Sie diese Cookies ab. Die gesamten Cookie-Einstellungen k&ouml;nnen Sie in den Cookie-Einstellungen verwalten.",
+			contact			: "JENTIS GmbH<br>Sch&ouml;nbrunnerstraße 231, 1120 Wien<br>Austria<br>+43-1-2234 00 33<br>dataprotection@jentis.com",
+			buttonAgree		: "Alle akzeptieren",
+			buttonDeny		: "Ablehnen",
+			buttonSetting	: "Einstellungen",
+			buttonSave		: "Speichern",
+			importantLinks	: {
+				"Impressum"		: "/impressum",
+				"Datenschutz"	: "/datenschutz"
+			}		
+		}
+	},
 	vendors : 
 	{
 		"ga" : {
@@ -22,7 +38,7 @@ window.jentis.consent.config = {
 			},
 			"purpose" : {
 				"id"    : "stat",
-				"name"  : "statistic"
+				"name"  : "Statistik"
 			},
 			"justification" : {
 				"id"    : "consent",
@@ -42,16 +58,39 @@ window.jentis.consent.config = {
 				}
 			},
 			"purpose" : {
-				"id"    : "stat",
-				"name"  : "statistic"
+				"id"    : "mark",
+				"name"  : "Marketing"
 			},
 			"justification" : {
-				"id"    : "legal",
+				"id"    : "consent",
+				"name"  : "Legal Fullfillment"
+			},
+			"description" : "bla bla bla bla bla"
+			
+		},
+		"adw"  : {
+			"vendor" : {
+				"id"      : "adw",
+				"name"    : "Adwords",
+				"street"  : "FB Street 1",
+				"zip"     : "114011",
+				"country" : {
+					"iso"   : "us",
+					"name"  : "United States of America"
+				}
+			},
+			"purpose" : {
+				"id"    : "mark",
+				"name"  : "Marketing"
+			},
+			"justification" : {
+				"id"    : "consent",
 				"name"  : "Legal Fullfillment"
 			},
 			"description" : "bla bla bla bla bla"
 			
 		}
+		
 	}
 
 };
