@@ -447,7 +447,14 @@ window.jentis.consent.engine = new function ()
 		return this.writeStorage(aStorage,true);		
 	}
 
-
+	/**
+	* The user requestst to get the setting panel in order to change is settings.
+	*/
+	this.userShowSettings = function ()
+	{
+		//Just throw the event so others can show the setting panel.
+		this.setEvent("user-show-settings");
+	}
 
 
 	//*************************
