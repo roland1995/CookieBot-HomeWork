@@ -11,7 +11,7 @@ window.jentis.consent.config = {
 		cssUrl : "../JentisAppDsgvo.css",
 		config : {
 			consentText 	: "<h4>Dataprotection Settings</h4>Wir verwenden Cookies und &auml;hnliche Technologien f&uuml;r folgende Zwecke: {{purposes}}. Mit Klick auf \"Zustimmen\" willigen Sie der Verwendung dieser Cookies ein. Mit \"Ablehnen\" lehnen Sie diese Cookies ab. Die gesamten Cookie-Einstellungen k&ouml;nnen Sie in den Cookie-Einstellungen verwalten.",
-			contact			: "JENTIS GmbH<br>Sch&ouml;nbrunnerstra√üe 231, 1120 Wien<br>Austria<br>+43-1-2234 00 33<br>dataprotection@jentis.com",
+			contact			: "JENTIS GmbH<br>Sch&ouml;nbrunnerstra·e 231, 1120 Wien<br>Austria<br>+43-1-2234 00 33<br>dataprotection@jentis.com",
 			buttonAgree		: "Alle akzeptieren",
 			buttonDeny		: "Ablehnen",
 			buttonSetting	: "Einstellungen",
@@ -62,7 +62,7 @@ window.jentis.consent.config = {
 				"name"  : "Marketing"
 			},
 			"justification" : {
-				"id"    : "consent",
+				"id"    : "legal",
 				"name"  : "Legal Fullfillment"
 			},
 			"description" : "bla bla bla bla bla"
