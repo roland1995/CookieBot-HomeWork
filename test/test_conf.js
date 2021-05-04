@@ -2,13 +2,12 @@ window.jentis = window.jentis || {};
 window.jentis.consent = window.jentis.consent || {};
 window.jentis.consent.config = {
 	
-	timeoutBarShow : 3600000,
-	cssUrl			: "test.css",
+	timeoutBarShow : 3600000,	
 	backward : {
 		vendorduplicate : "pixel"
-	},	
+	},
+	bModeStartInitTrackOnJustificationOther : true,
 	template : {
-		cssUrl : "../JentisAppDsgvo.css",
 		config : {
 			consentText 	: "<h4>Dataprotection Settings</h4>Wir verwenden Cookies und &auml;hnliche Technologien f&uuml;r folgende Zwecke: {{purposes}}. Mit Klick auf \"Zustimmen\" willigen Sie der Verwendung dieser Cookies ein. Mit \"Ablehnen\" lehnen Sie diese Cookies ab. Die gesamten Cookie-Einstellungen k&ouml;nnen Sie in den Cookie-Einstellungen verwalten.",
 			contact			: "JENTIS GmbH<br>Sch&ouml;nbrunnerstraáe 231, 1120 Wien<br>Austria<br>+43-1-2234 00 33<br>dataprotection@jentis.com",
@@ -41,9 +40,10 @@ window.jentis.consent.config = {
 				"name"  : "Statistik"
 			},
 			"justification" : {
-				"id"    : "consent",
+				"id"    : "other",
 				"name"  : "consent"
 			},
+			"deniable"	: false,
 			"description" : "bla bla bla bla bla"
 		},
 		"fb"  : {
@@ -65,6 +65,7 @@ window.jentis.consent.config = {
 				"id"    : "legal",
 				"name"  : "Legal Fullfillment"
 			},
+			"deniable"	: true,
 			"description" : "bla bla bla bla bla"
 			
 		},
@@ -87,6 +88,7 @@ window.jentis.consent.config = {
 				"id"    : "consent",
 				"name"  : "Legal Fullfillment"
 			},
+			"deniable"	: true,
 			"description" : "bla bla bla bla bla"
 			
 		}

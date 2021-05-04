@@ -38,7 +38,7 @@
 			
 		</script>
 		
-		<script src="./test_conf.js"></script>
+		<script src="./test_conf1.js"></script>
 		<script src="../JentisConsentEngine.js" /></script>
 		<script src="./JCE_bridge_GTM.js" /></script>
 		
@@ -68,7 +68,7 @@
 			var aData = {
 				consentid: "TESTTESTTEST",
 				lastupdate: 100,
-				vendors: {"ga":true,"fb":false}				
+				vendors: {"ga":true,"fb":false,"adw":false}				
 			};			
 			var sJson = JSON.stringify(aData);
 
@@ -81,7 +81,7 @@
 			var aData = {
 				consentid: "TESTTESTTEST",
 				lastupdate: Date.now()-1000,
-				vendors: {"ga":true,"fb":false}				
+				vendors: {"ga":true,"fb":false,"adw":false}				
 			};			
 			var sJson = JSON.stringify(aData);
 
