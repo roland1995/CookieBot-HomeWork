@@ -28,8 +28,39 @@ window.jentis.consent.engine = new function ()
 		}
 		else
 		{
-			console.log("jentis.consent.engine config not found.");
-			return false;
+			console.log("jentis.consent.engine config not found - fallback config");
+			this.oLocalConfData = {	
+				timeoutBarShow : -1,	
+				backward : {},
+				bModeStartInitTrackOnJustificationOther : true,
+				template : {},
+				vendors : 
+				{
+					"*" : {
+						"vendor" : {
+							"id"      : "*",
+							"name"    : "",
+							"street"  : "",
+							"zip"     : "",
+							"country" : {
+								"iso"   : "-",
+								"name"  : ""
+							}
+						},
+						"purpose" : {
+							"id"    : "other",
+							"name"  : "Other"
+						},
+						"justification" : {
+							"id"    : "other",
+							"name"  : "other"
+						},
+						"deniable"	: false,
+						"description" : ""
+					}
+				}		
+			}	
+			
 		}
 		
 		//Global variables
@@ -37,6 +68,7 @@ window.jentis.consent.engine = new function ()
 		this.bNewVendorConsent 	= false;			//Bool, gibt an ob in der Congig Tools gefunden wurden die noch nicht im Storage sind.
 				
 		this.sConsentId 		= false;			//Current ConsentID
+		this.bUserConsent 		= false;			//If true, the consent was given from the user, if false, the consent was given without the user (justification and bModeStartInitTrackOnJustificationOther)
 		this.iLastUpdate 		= false;			//Date in Unixtimestamp when the last save happend.
 		this.bSend				= false;			//true if the consent is send, false if never before send. Important for migration.
 		this.aStorage 			= {};				//List of bools for each pixel from the loca storage
@@ -51,7 +83,6 @@ window.jentis.consent.engine = new function ()
 		this.readStorage();		
 		this.init_eventlistener();
 		this.init_consentStatus();
-		this.addCssUrl();
 		var bBarShow = this.checkifBarShow();
 		this.startJentisTracking(bBarShow);
 	}
@@ -72,19 +103,32 @@ window.jentis.consent.engine = new function ()
 	this.startJentisTracking = function(bBarShow)
 	{
 		var bTrack = false;
-		if(typeof this.sConsentId !== "undefined" && this.sConsentId !== false && bBarShow===false)
-		{			
-			for (var sVendorId in this.oLocalConfData.vendors)
-			{
-				var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
-			
-				if(this.aStorage[sVendorId] === true && oVendorConfig.justification.id === "consent")					
-				{
+		for (var sVendorId in this.oLocalConfData.vendors)
+		{
+			var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
+		
+			if(oVendorConfig.justification.id === "consent")					
+			{				
+				//if the Justification is consent and we have a consent and the consent for this vendor is true, then start tracking
+				if(typeof this.sConsentId !== "undefined" && this.sConsentId !== false && bBarShow===false && this.aStorage[sVendorId] === true)
+				{							
 					bTrack = true;
 					break;
 				}
-			}		
-		}
+			}
+			else if(this.oLocalConfData.bModeStartInitTrackOnJustificationOther === true)
+			{
+				//if the justification is different to consent and in the config is set START ON JUSTIFICATION OTHER is true, then we start tracking.
+				bTrack = true;
+				break;				
+			}
+			else if(typeof this.sConsentId !== "undefined" && this.sConsentId !== false && bBarShow===false)
+			{
+				//if the justification is different to consent and we have allreade a consent, and the bar is not showen, then we start tracking.
+				bTrack = true;
+				break;				
+			}
+		}		
 		
 		if(bTrack === true && this.bstartTrack !== true)
 		{
@@ -119,6 +163,7 @@ window.jentis.consent.engine = new function ()
 		this.bWriteStorage = false;
 		
 		//Iterate all vendors from the config.
+		var bNoConsentJustification = false;
 		for (var sVendorId in this.oLocalConfData.vendors)
 		{
 			var oVendorConfig = this.oLocalConfData.vendors[ sVendorId ];
@@ -138,6 +183,7 @@ window.jentis.consent.engine = new function ()
 				{
 					//if the justification is NOT consent, we can start to track.
 					aStorage[sVendorId] = true;														
+					bNoConsentJustification = true;
 				}						
 				
 				this.bWriteStorage = true;
@@ -150,19 +196,33 @@ window.jentis.consent.engine = new function ()
 		this.aInitStorage = this.copyObject(aStorage);						
 		
 		
+		
+		var bSendConsent = false;
+		var bFromUser = false;
 		//If there is a consent storage (consentid exists) and we never send the consent before, now we have to send it.
-		var bSendConsent = (this.bSend === false && this.sConsentId !== false);
-
+		if(this.bSend === false && this.sConsentId !== false)
+		{
+			bSendConsent = true;
+			bFromUser = true;
+		}
+		
+		//If we never send the consent before AND there was at least one vendor with a justification not Consent AND in the config we want to start tracking initial
+		//when a no consent vendor was configured.
+		if(this.bSend === false && bNoConsentJustification === true && this.oLocalConfData.bModeStartInitTrackOnJustificationOther === true)
+		{
+			bSendConsent = true;
+			bFromUser = false;			
+		}
 
 		if(this.bWriteStorage)
 		{
-			this.writeStorage(aStorage,bSendConsent,true,false);
+			this.writeStorage(aStorage,bSendConsent,true,false,bFromUser);
 		}		
 		else if(bSendConsent)
 		{
 			//If there is a consent storage (consentid exists) and we never send the consent before, now we have to send it.
 			//If we have to send it even without a change, we must go to writeStorage.
-			this.writeStorage(aStorage,bSendConsent,false,false);
+			this.writeStorage(aStorage,bSendConsent,false,false,bFromUser);
 		}		
 		
 		window.jentis.consent.engine.setEvent("init");
@@ -184,6 +244,12 @@ window.jentis.consent.engine = new function ()
 		}
 		else
 		{
+			if(this.bUserConsent === false)
+			{
+				//The given consent was not set by the user, so show the consentbar again.
+				this.setEvent("show-bar");
+				return true;								
+			}
 			
 			if(this.bNewVendorConsent === true)
 			{
@@ -248,6 +314,7 @@ window.jentis.consent.engine = new function ()
 			this.sConsentId = aData.consentid;
 			this.iLastUpdate = aData.lastupdate;
 			this.aStorage = aData.vendors;
+			this.bUserConsent = aData.userconsent;
 			
 			//Backwards compatible
 			if(	typeof this.aStorage === "undefined" && 
@@ -273,23 +340,6 @@ window.jentis.consent.engine = new function ()
 			
 		}
 
-	}
-
-	/**
-	* If a template is configured now add the CSS Link to the HEAD Dom.
-	*
-	*/
-	this.addCssUrl = function()
-	{
-		if(typeof this.oLocalConfData.template !== "undefined" && typeof this.oLocalConfData.template.cssUrl !== "undefined")
-		{
-			//Externe CSS URL laden.
-			var oHead = document.getElementsByTagName("head")[0];
-			var oStyle = document.createElement("link");
-			oStyle.setAttribute("rel","stylesheet");
-			oStyle.setAttribute("href",this.oLocalConfData.template.cssUrl);
-			oHead.appendChild(oStyle);			
-		}			
 	}
 
 	//*************************
@@ -416,7 +466,7 @@ window.jentis.consent.engine = new function ()
 		{
 			var oVendorData = this.oLocalConfData.vendors[sVendorId];
 			
-			if(oVendorData.justification.id === "consent")
+			if(oVendorData.justification.id === "consent" || oVendorData.deniable === true)
 			{
 				aStorage[sVendorId] = false;							
 			}
@@ -580,6 +630,7 @@ window.jentis.consent.engine = new function ()
 	{
 
 		var aPosChange = [];
+		var aPosNegChange = {};
 		var bChange = false;
 		
 		for (var sKey in oData2Check)
@@ -595,12 +646,14 @@ window.jentis.consent.engine = new function ()
 				{
 					//This Consent was added
 					aPosChange.push(sKey);
+					aPosNegChange[sKey] = true;
 					bChange = true;
 				}
 				else if (oData2Check[sKey] === false && this.aInitStorage[sKey] === true)
 				{
 					//This Consent was deleted
 					bChange = true;
+					aPosNegChange[sKey] = false;
 				}
 			}
 		}
@@ -622,7 +675,7 @@ window.jentis.consent.engine = new function ()
 	
 		//Now we are ready with the comparison, so prepare for the next comparison		
 		this.aInitStorage = this.copyObject(oData2Check);
-		return bChange;
+		return aPosNegChange;
 
 	}
 
@@ -634,8 +687,14 @@ window.jentis.consent.engine = new function ()
 	*@param bool bRenewTimestamp If true we will create a new current timestamp and add it to the storage data
 	*@param bool bstartTrack If true we will check if we must start tracking.	
 	*/
-	this.writeStorage = function (aStorage,bSend,bRenewTimestamp,bStartTracking)
+	this.writeStorage = function (aStorage,bSend,bRenewTimestamp,bStartTracking,bFromUser)
 	{		
+		if(typeof bFromUser === "undefined")
+		{
+			bFromUser = true;
+		}
+		this.bUserConsent = bFromUser;
+	
 		//We just want to set a consentId if we are sending it to the server.
 		if(this.sConsentId === false && bSend === true)
 		{
@@ -664,8 +723,9 @@ window.jentis.consent.engine = new function ()
 		var aData = {
 			consentid: this.sConsentId,
 			lastupdate: this.iLastUpdate,
-			vendors: aStorage,
-			send: bSend
+			vendors: aStorage,			
+			send: bSend,
+			userconsent: bFromUser
 		};			
 		
 		//Backwards compatible
@@ -679,6 +739,14 @@ window.jentis.consent.engine = new function ()
 
 		//Now write it to the local storage		
 		localStorage.setItem("jentis.consent.data", JSON.stringify(aData));
+				
+		
+		//We want to have the new storage data even in the object storage variables
+		this.aStorage = aStorage;			
+		
+		//Check if something had changed so we can trigger the events.
+		var oVendorsChanged = this.checkStorageChange(aStorage);
+		aData["vendorsChanged"] = oVendorsChanged;
 		
 		//Now we want to send it if wanted
 		if(bSend === true)
@@ -687,13 +755,7 @@ window.jentis.consent.engine = new function ()
 			//We can only set it to true. If send not wanted, may it is allready send to bSend is correctly mayba true.
 			this.bSend = true;
 		}
-		
-		
-		//We want to have the new storage data even in the object storage variables
-		this.aStorage = aStorage;			
-		
-		//Check if something had changed so we can trigger the events.
-		this.checkStorageChange(aStorage);
+
 		
 		//Now we want to check if we want to start to track.
 		if(bStartTracking === true)
