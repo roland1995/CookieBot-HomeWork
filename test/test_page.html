@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+	<head>
+		<title>JENTIS Consent Engine Test</title>
+		
+		<script>
+			document.addEventListener('jentis.consent.engine.minimal-consent-given', function (e)
+			{
+				console.log("Miniaml Consent is given: %o",e.detail);
+			});
+			document.addEventListener('jentis.consent.engine.no-consent-given', function (e)
+			{
+				console.log("No Consent is given: %o",e.detail);
+			});
+			document.addEventListener('jentis.consent.engine.send-consent-data', function (e)
+			{
+				console.log("SEND Consent to Server: %o",e.detail);
+			});
+			document.addEventListener('jentis.consent.engine.show-bar', function (e)
+			{
+				console.log("Show Bar now: %o",e.detail);
+			});
+						
+			document.addEventListener('jentis.consent.engine.vendor-change', function (e)
+			{
+				console.log("Vendor Changed: %o",e.detail);
+			});			
+
+			document.addEventListener('jentis.consent.engine.vendor-add', function (e)
+			{
+				console.log("Vendor Add: %o",e.detail);
+			});			
+
+			document.addEventListener('jentis.consent.engine.init', function (e)
+			{
+				console.log("CMP Init: %o",e.detail);
+			});			
+			
+		</script>
+		
+		<script src="./test_conf.js"></script>
+		<script src="../JentisConsentEngine.js" /></script>
+		<script src="./JCE_bridge_GTM.js" /></script>
+		
+		<script>
+		
+		
+		function acceptAll()
+		{
+			jentis.consent.engine.AcceptAll();
+		}
+		
+		function acceptGa()
+		{		
+			var sConsentId = jentis.consent.engine.setNewVendorConsents({
+			  "ga"  : true, 
+			  "fb"  : true
+			});		
+		}
+		
+		function denyAll()
+		{		
+			var sConsentId = jentis.consent.engine.DenyAll();
+		}
+		
+		function MigrateOldConsent()
+		{
+			var aData = {
+				consentid: "TESTTESTTEST",
+				lastupdate: 100,
+				vendors: {"ga":true,"fb":false}				
+			};			
+			var sJson = JSON.stringify(aData);
+
+			//Now write it to the local storage
+			localStorage.setItem("jentis.consent.data", sJson);		
+		}
+		
+		function MigrateInTimeConsent()
+		{
+			var aData = {
+				consentid: "TESTTESTTEST",
+				lastupdate: Date.now()-1000,
+				vendors: {"ga":true,"fb":false}				
+			};			
+			var sJson = JSON.stringify(aData);
+
+			//Now write it to the local storage
+			localStorage.setItem("jentis.consent.data", sJson);		
+		}
+		
+		
+		
+		</script>
+		<style>
+			button
+			{
+				display:block;
+				margin-bottom:20px;
+				min-width:200px;
+			}
+		</style>
+	</head>
+	<body>
+		<button onClick="acceptAll();">
+			Accept All
+		</button>
+		<button onClick="acceptGa();">
+			Accept GA
+		</button>
+		<button onClick="denyAll();">
+			DENY All
+		</button>
+		<button onClick="MigrateOldConsent();">
+			Do old consent OUT OF TIME
+		</button>
+		<button onClick="MigrateInTimeConsent();">
+			Do old consent IN TIME
+		</button>
+
+	</body>
+</html>
