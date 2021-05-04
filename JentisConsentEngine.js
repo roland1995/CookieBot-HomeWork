@@ -28,8 +28,39 @@ window.jentis.consent.engine = new function ()
 		}
 		else
 		{
-			console.log("jentis.consent.engine config not found.");
-			return false;
+			console.log("jentis.consent.engine config not found - fallback config");
+			this.oLocalConfData = {	
+				timeoutBarShow : -1,	
+				backward : {},
+				bModeStartInitTrackOnJustificationOther : true,
+				template : {},
+				vendors : 
+				{
+					"*" : {
+						"vendor" : {
+							"id"      : "*",
+							"name"    : "",
+							"street"  : "",
+							"zip"     : "",
+							"country" : {
+								"iso"   : "-",
+								"name"  : ""
+							}
+						},
+						"purpose" : {
+							"id"    : "other",
+							"name"  : "Other"
+						},
+						"justification" : {
+							"id"    : "other",
+							"name"  : "other"
+						},
+						"deniable"	: false,
+						"description" : ""
+					}
+				}		
+			}	
+			
 		}
 		
 		//Global variables
