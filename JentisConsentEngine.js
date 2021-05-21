@@ -281,7 +281,14 @@ window.jentis.consent.engine = new function ()
 	this.readStorage = function ()
 	{
 		//Get the data from the local storage.
-		var aData = JSON.parse(localStorage.getItem("jentis.consent.data"));
+		if(typeof localStorage !== "undefined")
+		{
+			var aData = JSON.parse(localStorage.getItem("jentis.consent.data"));
+		}
+		else
+		{
+			var aData = null;
+		}
 
 		if (aData === null)
 		{
@@ -611,7 +618,19 @@ window.jentis.consent.engine = new function ()
 		this.aEventCache[eventname].push(oValue);
 
 		//Trigger the global event.
-		document.dispatchEvent(new CustomEvent(eventname, {"detail": oValue}));
+		if (typeof window.CustomEvent === 'function') 
+		{
+			var oEvent = new CustomEvent(eventname, {"detail": oValue});
+		} 
+		else 
+		{
+			var oEvent = document.createEvent('CustomEvent');
+			oEvent.initCustomEvent(eventname, true, false, oValue);
+		}
+
+		// Dispatch the render event
+		document.dispatchEvent(oEvent);		
+		
 	}
 
 	//*************************
@@ -737,9 +756,11 @@ window.jentis.consent.engine = new function ()
 			aData[this.oLocalConfData.backward.vendorduplicate] = aStorage;
 		}		
 
-		//Now write it to the local storage		
-		localStorage.setItem("jentis.consent.data", JSON.stringify(aData));
-				
+		//Now write it to the local storage
+		if(typeof localStorage !== "undefined")
+		{		
+			localStorage.setItem("jentis.consent.data", JSON.stringify(aData));
+		}	
 		
 		//We want to have the new storage data even in the object storage variables
 		this.aStorage = aStorage;			
