@@ -93,6 +93,15 @@
 		
 		
 		</script>
+		<script type="text/javascript">
+
+			window.addEventListener('CookiebotOnAccept', function (e) {
+				if (Cookiebot.consent.marketing && Cookiebot.consent.statistics && Cookiebot.consent.preferences) 
+					{
+						acceptAll();
+					} 
+				}, false);
+		</script>
 		<style>
 			button
 			{
@@ -105,9 +114,10 @@
 	<body>
 		<script id="CookieDeclaration" src="https://consent.cookiebot.com/a8a6f6e0-0cfd-4c88-86fd-076b8dcbc32b/cd.js" type="text/javascript" async></script>
 		<a href="javascript: Cookiebot.renew()">Renew or change your cookie consent</a>
-		<button onClick="acceptAll();">
+
+		<!-- <button onClick="acceptAll();">
 			Accept All
-		</button>
+		</button> -->
 		<button onClick="acceptGa();">
 			Accept GA
 		</button>
