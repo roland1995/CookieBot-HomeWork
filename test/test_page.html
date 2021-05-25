@@ -39,7 +39,7 @@
 			
 		</script>
 		
-		<script src="./test_conf1.js"></script>
+		<script src="./test_conf.js"></script>
 		<script src="../JentisConsentEngine.js" /></script>
 		<script src="./JCE_bridge_GTM.js" /></script>
 		
@@ -96,7 +96,7 @@
 		<script type="text/javascript">
 
 			window.addEventListener('CookiebotOnAccept', function (e) {
-				console.log(jentis.consent.engine.getVendorFullData("en",true));
+				console.log(jentis.consent.engine.getVendorFullData("en",true))
 				if (Cookiebot.consent.marketing && Cookiebot.consent.statistics && Cookiebot.consent.preferences) 
 					{
 						jentis.consent.engine.AcceptAll();
@@ -129,7 +129,7 @@
 						"adw" : true
 						});	
 					}
-				}, false);
+			}, false);
 		</script>
 
 		<style>
