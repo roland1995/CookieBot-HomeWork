@@ -3,7 +3,7 @@
 	<head>
 		<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a8a6f6e0-0cfd-4c88-86fd-076b8dcbc32b" type="text/javascript" async></script>	
 		<title>JENTIS Consent Engine Test</title>
-		
+
 		<script>
 			document.addEventListener('jentis.consent.engine.minimal-consent-given', function (e)
 			{
@@ -94,9 +94,17 @@
 		
 		</script>
 		<script type="text/javascript">
-
+			function setByPurpose(purposeId,bool)
+			{	
+				var data = jentis.consent.engine.getVendorFullData("en",true)
+				for(let vendor in data){
+					if(data[vendor].purpose.id === purposeId){
+						jentis.consent.engine.setNewVendorConsents({[vendor]: bool});	
+					}	
+				}
+			}
 			window.addEventListener('CookiebotOnAccept', function (e) {
-				console.log(jentis.consent.engine.getVendorFullData("en",true))
+				
 				if (Cookiebot.consent.marketing && Cookiebot.consent.statistics && Cookiebot.consent.preferences) 
 					{
 						jentis.consent.engine.AcceptAll();
@@ -107,27 +115,19 @@
 					}
 				else if(!Cookiebot.consent.marketing && Cookiebot.consent.statistics  && !Cookiebot.consent.preferences)
 					{
-						var sConsentId = jentis.consent.engine.setNewVendorConsents({
-						"ga"  : true, 
-						"fb"  : false,
-						"adw" : false
-						});	
+						setByPurpose("stat",true);	
+						setByPurpose("mark",false);
 					}
 				else if(Cookiebot.consent.marketing && !Cookiebot.consent.statistics  && !Cookiebot.consent.preferences)
 					{
-						var sConsentId = jentis.consent.engine.setNewVendorConsents({
-						"ga"  : false, 
-						"fb"  : true,
-						"adw" : true
-						});	
+						setByPurpose("mark",true);
+						setByPurpose("stat",false);	
+
 					}
 				else if(Cookiebot.consent.marketing && Cookiebot.consent.statistics && !Cookiebot.consent.preferences)
 					{
-						var sConsentId = jentis.consent.engine.setNewVendorConsents({
-						"ga"  : true, 
-						"fb"  : true,
-						"adw" : true
-						});	
+						setByPurpose("mark",true);
+						setByPurpose("stat",true);	
 					}
 			}, false);
 		</script>
