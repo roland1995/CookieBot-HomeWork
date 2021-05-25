@@ -131,6 +131,13 @@
 						setByPurpose("stat",true);	
 					}
 			}, false);
+
+			window.addEventListener('CookiebotOnDecline', function (e) {
+				if (Cookiebot.consent.necessary && !Cookiebot.consent.marketing && !Cookiebot.consent.statistics && !Cookiebot.consent.preferences) 
+					{
+						var sConsentId = jentis.consent.engine.DenyAll();
+					} 
+			}, false);
 		</script>
 
 		<style>
